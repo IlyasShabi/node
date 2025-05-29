@@ -6,6 +6,7 @@ import { DebugBinding } from './internalBinding/debug';
 import { HttpParserBinding } from './internalBinding/http_parser';
 import { FsBinding } from './internalBinding/fs';
 import { FsDirBinding } from './internalBinding/fs_dir';
+import { LocksBinding } from './internalBinding/locks';
 import { MessagingBinding } from './internalBinding/messaging';
 import { OptionsBinding } from './internalBinding/options';
 import { OSBinding } from './internalBinding/os';
@@ -31,6 +32,7 @@ interface InternalBindingMap {
   fs: FsBinding;
   fs_dir: FsDirBinding;
   http_parser: HttpParserBinding;
+  locks: LocksBinding;
   messaging: MessagingBinding;
   modules: ModulesBinding;
   options: OptionsBinding;
