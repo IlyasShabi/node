@@ -912,7 +912,9 @@ Enable experimental import support for `.node` addons.
 ### `--experimental-config-file=config`
 
 <!-- YAML
-added: v23.10.0
+added:
+ - v23.10.0
+ - v22.16.0
 -->
 
 > Stability: 1.0 - Early development
@@ -974,7 +976,9 @@ so **NEVER** use untrusted configuration files.
 ### `--experimental-default-config-file`
 
 <!-- YAML
-added: v23.10.0
+added:
+ - v23.10.0
+ - v22.16.0
 -->
 
 > Stability: 1.0 - Early development
@@ -1209,7 +1213,7 @@ Enable experimental [`Web Storage`][] support.
 
 <!-- YAML
 added:
-  - REPLACEME
+  - v24.1.0
 -->
 
 > Stability: 1.1 - Active Development
@@ -2574,8 +2578,9 @@ added:
 
 Test suite shard to execute in a format of `<index>/<total>`, where
 
-`index` is a positive integer, index of divided parts
-`total` is a positive integer, total of divided part
+* `index` is a positive integer, index of divided parts.
+* `total` is a positive integer, total of divided part.
+
 This command will divide all tests files into `total` equal parts,
 and will run only those that happen to be in an `index` part.
 
@@ -2621,7 +2626,7 @@ changes:
     - v23.4.0
     - v22.13.0
     pr-url: https://github.com/nodejs/node/pull/55897
-    description: Snapsnot testing is no longer experimental.
+    description: Snapshot testing is no longer experimental.
 -->
 
 Regenerates the snapshot files used by the test runner for [snapshot testing][].
@@ -3076,6 +3081,10 @@ Use `--watch-path` to specify what paths to watch.
 This flag cannot be combined with
 `--check`, `--eval`, `--interactive`, or the REPL.
 
+Note: The `--watch` flag requires a file path as an argument and is incompatible
+with `--run` or inline script input, as `--run` takes precedence and ignores watch
+mode. If no file is provided, Node.js will exit with status code `9`.
+
 ```bash
 node --watch index.js
 ```
@@ -3102,6 +3111,9 @@ combination with `--watch`.
 
 This flag cannot be combined with
 `--check`, `--eval`, `--interactive`, `--test`, or the REPL.
+
+Note: Using `--watch-path` implicitly enables `--watch`, which requires a file path
+and is incompatible with `--run`, as `--run` takes precedence and ignores watch mode.
 
 ```bash
 node --watch-path=./src --watch-path=./tests index.js

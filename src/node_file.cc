@@ -43,6 +43,7 @@
 #include "uv.h"
 #include "v8-fast-api-calls.h"
 
+#include <cstdio>
 #include <filesystem>
 
 #if defined(__MINGW32__) || defined(_MSC_VER)
@@ -63,7 +64,6 @@ using v8::Array;
 using v8::BigInt;
 using v8::Context;
 using v8::EscapableHandleScope;
-using v8::FastApiCallbackOptions;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::HandleScope;
@@ -1071,32 +1071,6 @@ static void InternalModuleStat(const FunctionCallbackInfo<Value>& args) {
 
   args.GetReturnValue().Set(rc);
 }
-
-static int32_t FastInternalModuleStat(
-    Local<Value> recv,
-    Local<Value> input_,
-    // NOLINTNEXTLINE(runtime/references) This is V8 api.
-    FastApiCallbackOptions& options) {
-  TRACK_V8_FAST_API_CALL("fs.internalModuleStat");
-  HandleScope scope(options.isolate);
-
-  CHECK(input_->IsString());
-  Utf8Value input(options.isolate, input_.As<String>());
-
-  auto path = std::filesystem::path(input.ToStringView());
-
-  switch (std::filesystem::status(path).type()) {
-    case std::filesystem::file_type::directory:
-      return 1;
-    case std::filesystem::file_type::regular:
-      return 0;
-    default:
-      return -1;
-  }
-}
-
-v8::CFunction fast_internal_module_stat_(
-    v8::CFunction::Make(FastInternalModuleStat));
 
 constexpr bool is_uv_error_except_no_entry(int result) {
   return result < 0 && result != UV_ENOENT;
@@ -3350,6 +3324,72 @@ static void CpSyncCheckPaths(const FunctionCallbackInfo<Value>& args) {
   }
 }
 
+static void CpSyncOverrideFile(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  Isolate* isolate = env->isolate();
+
+  CHECK_EQ(args.Length(), 4);  // src, dest, mode, preserveTimestamps
+
+  BufferValue src(isolate, args[0]);
+  CHECK_NOT_NULL(*src);
+  ToNamespacedPath(env, &src);
+
+  BufferValue dest(isolate, args[1]);
+  CHECK_NOT_NULL(*dest);
+  ToNamespacedPath(env, &dest);
+
+  int mode;
+  if (!GetValidFileMode(env, args[2], UV_FS_COPYFILE).To(&mode)) {
+    return;
+  }
+
+  bool preserve_timestamps = args[3]->IsTrue();
+
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemRead, src.ToStringView());
+  THROW_IF_INSUFFICIENT_PERMISSIONS(
+      env, permission::PermissionScope::kFileSystemWrite, dest.ToStringView());
+
+  std::error_code error;
+
+  if (!std::filesystem::remove(*dest, error)) {
+    return env->ThrowStdErrException(error, "unlink", *dest);
+  }
+
+  if (mode == 0) {
+    // if no mode is specified use the faster std::filesystem API
+    if (!std::filesystem::copy_file(*src, *dest, error)) {
+      return env->ThrowStdErrException(error, "cp", *dest);
+    }
+  } else {
+    uv_fs_t req;
+    auto cleanup = OnScopeLeave([&req]() { uv_fs_req_cleanup(&req); });
+    auto result = uv_fs_copyfile(nullptr, &req, *src, *dest, mode, nullptr);
+    if (is_uv_error(result)) {
+      return env->ThrowUVException(result, "cp", nullptr, *src, *dest);
+    }
+  }
+
+  if (preserve_timestamps) {
+    uv_fs_t req;
+    auto cleanup = OnScopeLeave([&req]() { uv_fs_req_cleanup(&req); });
+    int result = uv_fs_stat(nullptr, &req, *src, nullptr);
+    if (is_uv_error(result)) {
+      return env->ThrowUVException(result, "stat", nullptr, *src);
+    }
+
+    const uv_stat_t* const s = static_cast<const uv_stat_t*>(req.ptr);
+    const double source_atime = s->st_atim.tv_sec + s->st_atim.tv_nsec / 1e9;
+    const double source_mtime = s->st_mtim.tv_sec + s->st_mtim.tv_nsec / 1e9;
+
+    int utime_result =
+        uv_fs_utime(nullptr, &req, *dest, source_atime, source_mtime, nullptr);
+    if (is_uv_error(utime_result)) {
+      return env->ThrowUVException(utime_result, "utime", nullptr, *dest);
+    }
+  }
+}
+
 BindingData::FilePathIsFileReturnType BindingData::FilePathIsFile(
     Environment* env, const std::string& file_path) {
   THROW_IF_INSUFFICIENT_PERMISSIONS(
@@ -3655,11 +3695,7 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
   SetMethod(isolate, target, "rmSync", RmSync);
   SetMethod(isolate, target, "mkdir", MKDir);
   SetMethod(isolate, target, "readdir", ReadDir);
-  SetFastMethod(isolate,
-                target,
-                "internalModuleStat",
-                InternalModuleStat,
-                &fast_internal_module_stat_);
+  SetMethod(isolate, target, "internalModuleStat", InternalModuleStat);
   SetMethod(isolate, target, "stat", Stat);
   SetMethod(isolate, target, "lstat", LStat);
   SetMethod(isolate, target, "fstat", FStat);
@@ -3689,6 +3725,7 @@ static void CreatePerIsolateProperties(IsolateData* isolate_data,
   SetMethod(isolate, target, "mkdtemp", Mkdtemp);
 
   SetMethod(isolate, target, "cpSyncCheckPaths", CpSyncCheckPaths);
+  SetMethod(isolate, target, "cpSyncOverrideFile", CpSyncOverrideFile);
 
   StatWatcher::CreatePerIsolateProperties(isolate_data, target);
   BindingData::CreatePerIsolateProperties(isolate_data, target);
@@ -3783,8 +3820,6 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(MKDir);
   registry->Register(ReadDir);
   registry->Register(InternalModuleStat);
-  registry->Register(FastInternalModuleStat);
-  registry->Register(fast_internal_module_stat_.GetTypeInfo());
   registry->Register(Stat);
   registry->Register(LStat);
   registry->Register(FStat);
@@ -3801,6 +3836,7 @@ void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
   registry->Register(CopyFile);
 
   registry->Register(CpSyncCheckPaths);
+  registry->Register(CpSyncOverrideFile);
 
   registry->Register(Chmod);
   registry->Register(FChmod);

@@ -476,11 +476,14 @@ Reads data from the file and stores that in the given buffer.
 If the file is not modified concurrently, the end-of-file is reached when the
 number of bytes read is zero.
 
-#### `filehandle.readableWebStream()`
+#### `filehandle.readableWebStream([options])`
 
 <!-- YAML
 added: v17.0.0
 changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/58548
+    description: Added the `autoClose` option.
   - version: v24.0.0
     pr-url: https://github.com/nodejs/node/pull/57513
     description: Marking the API stable.
@@ -496,6 +499,9 @@ changes:
     description: Added option to create a 'bytes' stream.
 -->
 
+* `options` {Object}
+  * `autoClose` {boolean} When true, causes the {FileHandle} to be closed when the
+    stream is closed. **Default:** `false`
 * Returns: {ReadableStream}
 
 Returns a byte-oriented `ReadableStream` that may be used to read the file's
@@ -859,11 +865,14 @@ the end of the file.
 added:
  - v20.4.0
  - v18.18.0
+changes:
+ - version: REPLACEME
+   pr-url: https://github.com/nodejs/node/pull/58467
+   description: No longer experimental.
 -->
 
-> Stability: 1 - Experimental
-
-An alias for `filehandle.close()`.
+Calls `filehandle.close()` and returns a promise that fulfills when the
+filehandle is closed.
 
 ### `fsPromises.access(path[, mode])`
 
@@ -1077,7 +1086,7 @@ behavior is similar to `cp dir1/ dir2/`.
 <!-- YAML
 added: v22.0.0
 changes:
-  - version: REPLACEME
+  - version: v24.1.0
     pr-url: https://github.com/nodejs/node/pull/58182
     description: Add support for `URL` instances for `cwd` option.
   - version: v24.0.0
@@ -3139,7 +3148,7 @@ descriptor. See [`fs.utimes()`][].
 <!-- YAML
 added: v22.0.0
 changes:
-  - version: REPLACEME
+  - version: v24.1.0
     pr-url: https://github.com/nodejs/node/pull/58182
     description: Add support for `URL` instances for `cwd` option.
   - version: v24.0.0
@@ -5695,7 +5704,7 @@ Synchronous version of [`fs.futimes()`][]. Returns `undefined`.
 <!-- YAML
 added: v22.0.0
 changes:
-  - version: REPLACEME
+  - version: v24.1.0
     pr-url: https://github.com/nodejs/node/pull/58182
     description: Add support for `URL` instances for `cwd` option.
   - version: v24.0.0
@@ -6752,22 +6761,27 @@ included in the iteration results.
 #### `dir[Symbol.asyncDispose]()`
 
 <!-- YAML
-added: REPLACEME
+added: v24.1.0
+changes:
+ - version: REPLACEME
+   pr-url: https://github.com/nodejs/node/pull/58467
+   description: No longer experimental.
 -->
 
-> Stability: 1 - Experimental
+Calls `dir.close()` and returns a promise that fulfills when the
+dir is closed.
 
-An alias for `dir.close()`.
-
-#### `dir[Symbol.Dispose]()`
+#### `dir[Symbol.dispose]()`
 
 <!-- YAML
-added: REPLACEME
+added: v24.1.0
+changes:
+ - version: REPLACEME
+   pr-url: https://github.com/nodejs/node/pull/58467
+   description: No longer experimental.
 -->
 
-> Stability: 1 - Experimental
-
-An alias for `dir.closeSync()`.
+Calls `dir.closeSync()` and returns `undefined`.
 
 ### Class: `fs.Dirent`
 
