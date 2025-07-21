@@ -156,6 +156,7 @@ class EnvironmentOptions : public Options {
   bool network_family_autoselection = true;
   uint64_t network_family_autoselection_attempt_timeout = 250;
   uint64_t max_http_header_size = 16 * 1024;
+  bool use_env_proxy = false;
   bool deprecation = true;
   bool force_async_hooks_checks = true;
   bool allow_native_addons = true;

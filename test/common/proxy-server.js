@@ -166,11 +166,11 @@ exports.checkProxiedFetch = async function(envExtension, expectation) {
   });
 };
 
-exports.runProxiedRequest = async function(envExtension) {
+exports.runProxiedRequest = async function(envExtension, cliFlags = []) {
   const fixtures = require('./fixtures');
   return spawnPromisified(
     process.execPath,
-    [fixtures.path('request-and-log.js')], {
+    [...cliFlags, fixtures.path('request-and-log.js')], {
       env: {
         ...process.env,
         ...envExtension,

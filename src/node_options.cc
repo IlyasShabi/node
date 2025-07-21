@@ -475,6 +475,10 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             kAllowedInEnvvar);
   AddAlias("--enable-network-family-autoselection",
            "--network-family-autoselection");
+  AddOption("--use-env-proxy",
+            "Enable proxy configuration from environment variables",
+            &EnvironmentOptions::use_env_proxy,
+            kAllowedInEnvvar);
   AddOption("--enable-source-maps",
             "Source Map V3 support for stack traces",
             &EnvironmentOptions::enable_source_maps,
