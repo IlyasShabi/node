@@ -38,6 +38,8 @@ test-without-async-context-frame: PASS, FLAKY
 
 # Windows on ARM
 [$system==win32 && $arch==arm64]
+# https://github.com/nodejs/node/issues/63056
+test-process-finalization: PASS, FLAKY
 
 [$system==linux]
 # https://github.com/nodejs/node/issues/54803
