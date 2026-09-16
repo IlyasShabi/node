@@ -37,10 +37,14 @@ static inline V ReadUnalignedValue(const char p[sizeof(V)]) {
   return ReadUnalignedValue<V>(reinterpret_cast<Address>(p));
 }
 
+// Solaris/illumos define int8_t as a synonym for the plain `char` type,
+// which would clash with the overload above.
+#if !defined(V8_OS_SOLARIS)
 template <typename V>
 static inline V ReadUnalignedValue(const int8_t p[sizeof(V)]) {
   return ReadUnalignedValue<V>(reinterpret_cast<Address>(p));
 }
+#endif
 
 template <typename V>
 static inline V ReadUnalignedValue(const uint8_t p[sizeof(V)]) {
